@@ -2,6 +2,45 @@
 //!
 //! This module contains reusable helper functions used across the codebase.
 
+/// Find the largest byte index <= `max_bytes` that is a valid UTF-8 character boundary.
+///
+/// This is a stable alternative to the unstable `str::floor_char_boundary` method.
+/// If `max_bytes` is already a valid boundary, returns it. Otherwise, walks back
+/// to find the nearest valid boundary.
+///
+/// # Arguments
+/// * `s` - The string to check
+/// * `max_bytes` - The maximum byte index
+///
+/// # Returns
+/// The largest valid char boundary index <= `max_bytes`
+///
+/// # Examples
+/// ```
+/// use zeroclaw::util::floor_char_boundary;
+///
+/// // ASCII - boundaries are at every byte
+/// assert_eq!(floor_char_boundary("hello", 3), 3);
+///
+/// // Multi-byte character - find valid boundary
+/// let s = "héllo"; // 'é' is 2 bytes
+/// assert_eq!(floor_char_boundary(s, 2), 1); // Can't split 'é', goes back to 1
+/// assert_eq!(floor_char_boundary(s, 3), 3); // After 'é' is fine
+/// ```
+pub fn floor_char_boundary(s: &str, max_bytes: usize) -> usize {
+    let max = max_bytes.min(s.len());
+    if s.is_char_boundary(max) {
+        max
+    } else {
+        // Walk back to find a valid boundary (at most 3 bytes for UTF-8)
+        let mut boundary = max;
+        while boundary > 0 && !s.is_char_boundary(boundary) {
+            boundary -= 1;
+        }
+        boundary
+    }
+}
+
 /// Truncate a string to at most `max_chars` characters, appending "..." if truncated.
 ///
 /// This function safely handles multi-byte UTF-8 characters (emoji, CJK, accented characters)
@@ -46,6 +85,48 @@ pub fn truncate_with_ellipsis(s: &str, max_chars: usize) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_floor_char_boundary_ascii() {
+        // ASCII strings - every byte is a valid boundary
+        assert_eq!(floor_char_boundary("hello", 0), 0);
+        assert_eq!(floor_char_boundary("hello", 3), 3);
+        assert_eq!(floor_char_boundary("hello", 5), 5);
+    }
+
+    #[test]
+    fn test_floor_char_boundary_ascii_exceeds_length() {
+        // max_bytes exceeds string length
+        assert_eq!(floor_char_boundary("hi", 10), 2);
+    }
+
+    #[test]
+    fn test_floor_char_boundary_multibyte() {
+        // 'é' is 2 bytes: h(1) + é(2) + l(1) + l(1) + o(1) = 6 bytes
+        let s = "héllo";
+        assert_eq!(floor_char_boundary(s, 0), 0); // Before 'h'
+        assert_eq!(floor_char_boundary(s, 1), 1); // After 'h', before 'é'
+        assert_eq!(floor_char_boundary(s, 2), 1); // Middle of 'é', goes back to 1
+        assert_eq!(floor_char_boundary(s, 3), 3); // After 'é'
+        assert_eq!(floor_char_boundary(s, 4), 4); // After first 'l'
+    }
+
+    #[test]
+    fn test_floor_char_boundary_emoji() {
+        // '😀' is 4 bytes
+        let s = "😀😀";
+        assert_eq!(floor_char_boundary(s, 0), 0);
+        assert_eq!(floor_char_boundary(s, 2), 0); // Middle of first emoji
+        assert_eq!(floor_char_boundary(s, 4), 4); // After first emoji
+        assert_eq!(floor_char_boundary(s, 5), 4); // Middle of second emoji
+        assert_eq!(floor_char_boundary(s, 8), 8); // After second emoji
+    }
+
+    #[test]
+    fn test_floor_char_boundary_empty() {
+        assert_eq!(floor_char_boundary("", 0), 0);
+        assert_eq!(floor_char_boundary("", 5), 0);
+    }
 
     #[test]
     fn test_truncate_ascii_no_truncation() {
