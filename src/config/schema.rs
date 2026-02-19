@@ -334,7 +334,7 @@ pub struct CostConfig {
 
     /// Per-model pricing (USD per 1M tokens)
     #[serde(default)]
-    pub prices: std::collections::HashMap<String, ModelPricing>,
+    pub prices: HashMap<String, ModelPricing>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -1978,6 +1978,7 @@ pub struct ChannelsConfig {
     pub irc: Option<IrcConfig>,
     pub lark: Option<LarkConfig>,
     pub dingtalk: Option<DingTalkConfig>,
+    pub feishu: Option<FeishuConfig>,
     pub qq: Option<QQConfig>,
 }
 
@@ -1998,6 +1999,7 @@ impl Default for ChannelsConfig {
             irc: None,
             lark: None,
             dingtalk: None,
+            feishu: None,
             qq: None,
         }
     }
@@ -2202,6 +2204,34 @@ pub struct LarkConfig {
     /// Whether to use the Feishu (Chinese) endpoint instead of Lark (International)
     #[serde(default)]
     pub use_feishu: bool,
+    /// Event receive mode: "websocket" (default) or "webhook"
+    #[serde(default)]
+    pub receive_mode: LarkReceiveMode,
+    /// HTTP port for webhook mode only. Must be set when receive_mode = "webhook".
+    /// Not required (and ignored) for websocket mode.
+    #[serde(default)]
+    pub port: Option<u16>,
+}
+
+/// Feishu (Chinese version of Lark) configuration for messaging integration.
+///
+/// This is a dedicated config for Feishu without the `use_feishu` field,
+/// as it always uses Feishu endpoints (`open.feishu.cn`).
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct FeishuConfig {
+    /// App ID from Feishu developer console
+    pub app_id: String,
+    /// App Secret from Feishu developer console
+    pub app_secret: String,
+    /// Encrypt key for webhook message decryption (optional)
+    #[serde(default)]
+    pub encrypt_key: Option<String>,
+    /// Verification token for webhook validation (optional)
+    #[serde(default)]
+    pub verification_token: Option<String>,
+    /// Allowed user open_ids (empty = deny all, "*" = allow all)
+    #[serde(default)]
+    pub allowed_users: Vec<String>,
     /// Event receive mode: "websocket" (default) or "webhook"
     #[serde(default)]
     pub receive_mode: LarkReceiveMode,
@@ -3241,6 +3271,7 @@ default_temperature = 0.7
                 irc: None,
                 lark: None,
                 dingtalk: None,
+                feishu: None,
                 qq: None,
             },
             memory: MemoryConfig::default(),
@@ -3745,6 +3776,7 @@ allowed_users = ["@ops:matrix.org"]
             irc: None,
             lark: None,
             dingtalk: None,
+            feishu: None,
             qq: None,
         };
         let toml_str = toml::to_string_pretty(&c).unwrap();
@@ -3908,6 +3940,7 @@ channel_id = "C123"
             irc: None,
             lark: None,
             dingtalk: None,
+            feishu: None,
             qq: None,
         };
         let toml_str = toml::to_string_pretty(&c).unwrap();

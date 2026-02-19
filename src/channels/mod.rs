@@ -1,6 +1,7 @@
 pub mod cli;
 pub mod dingtalk;
 pub mod discord;
+pub mod feishu;
 pub mod email_channel;
 pub mod imessage;
 pub mod irc;
@@ -17,6 +18,7 @@ pub mod whatsapp;
 pub use cli::CliChannel;
 pub use dingtalk::DingTalkChannel;
 pub use discord::DiscordChannel;
+pub use feishu::FeishuChannel;
 pub use email_channel::EmailChannel;
 pub use imessage::IMessageChannel;
 pub use irc::IrcChannel;
@@ -1256,6 +1258,7 @@ pub fn handle_command(command: crate::ChannelCommands, config: &Config) -> Resul
                 ("IRC", config.channels_config.irc.is_some()),
                 ("Lark", config.channels_config.lark.is_some()),
                 ("DingTalk", config.channels_config.dingtalk.is_some()),
+                ("Feishu", config.channels_config.feishu.is_some()),
                 ("QQ", config.channels_config.qq.is_some()),
             ] {
                 println!("  {} {name}", if configured { "✅" } else { "❌" });
@@ -1423,6 +1426,10 @@ pub async fn doctor_channels(config: Config) -> Result<()> {
                 dt.allowed_users.clone(),
             )),
         ));
+    }
+
+    if let Some(ref fs) = config.channels_config.feishu {
+        channels.push(("Feishu", Arc::new(FeishuChannel::from_config(fs))));
     }
 
     if let Some(ref qq) = config.channels_config.qq {
@@ -1737,6 +1744,10 @@ pub async fn start_channels(config: Config) -> Result<()> {
             dt.client_secret.clone(),
             dt.allowed_users.clone(),
         )));
+    }
+
+    if let Some(ref fs) = config.channels_config.feishu {
+        channels.push(Arc::new(FeishuChannel::from_config(fs)));
     }
 
     if let Some(ref qq) = config.channels_config.qq {

@@ -2467,6 +2467,7 @@ fn setup_channels() -> Result<ChannelsConfig> {
         irc: None,
         lark: None,
         dingtalk: None,
+        feishu: None,
         qq: None,
     };
 

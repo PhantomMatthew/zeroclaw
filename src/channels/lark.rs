@@ -183,6 +183,20 @@ impl LarkChannel {
         ch
     }
 
+    /// Set whether to use Feishu (Chinese) endpoint.
+    /// Returns self for builder pattern chaining.
+    pub fn with_feishu(mut self, use_feishu: bool) -> Self {
+        self.use_feishu = use_feishu;
+        self
+    }
+
+    /// Set the receive mode (WebSocket or Webhook).
+    /// Returns self for builder pattern chaining.
+    pub fn with_receive_mode(mut self, mode: crate::config::schema::LarkReceiveMode) -> Self {
+        self.receive_mode = mode;
+        self
+    }
+
     fn http_client(&self) -> reqwest::Client {
         crate::config::build_runtime_proxy_client("channel.lark")
     }
@@ -470,7 +484,7 @@ impl LarkChannel {
     }
 
     /// Check if a user open_id is allowed
-    fn is_user_allowed(&self, open_id: &str) -> bool {
+    pub fn is_user_allowed(&self, open_id: &str) -> bool {
         self.allowed_users.iter().any(|u| u == "*" || u == open_id)
     }
 
